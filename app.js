@@ -28,6 +28,10 @@ io.on("connection", function (socket) {
 app.get("/", function (req, res) {
     res.render("index");
 });
+app.use(express.json());
+app.get('/api/ping', (req, res) => {
+    res.json({ message: 'Express is alive', time: new Date() });
+});
 server.listen(3000, () => {
     console.log('Server listening on http://localhost:3000');
 });
