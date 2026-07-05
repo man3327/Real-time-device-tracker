@@ -18,7 +18,8 @@ function MapView() {
   const [currentPosition, setCurrentPosition] = useState(null);
 
   useEffect(() => {
-    socketRef.current = io('http://localhost:3000');
+    socketRef.current = io('http://localhost:3000', {
+   });
 
     socketRef.current.on('connect', () => {
       console.log('Socket connected:', socketRef.current.id);

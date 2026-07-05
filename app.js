@@ -25,16 +25,27 @@ app.set("view engine", "ejs");
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 io.on("connection", function (socket) {
+    const {groupId}=socket.handshake.query;
+    if (groupId){
+        socket.join(groupId);
+        console.log(`Socket ${socket.id} joined group ${groupId}`);
+    }
     socket.on('send-location', (data) => {
-        socket.broadcast.emit('receive-location', { id: socket.id, ...data });
+        if (groupId) {
+            socket.to(groupId).emit('receive-location', { id: socket.id, ...data });
+        }
     });
     socket.on("disconnect", function() {
-        io.emit("user-disconnected", socket.id);
+        if (groupId) {
+            socket.to(groupId).emit("user-disconnected", socket.id);
+        }
     });
 });
 app.get("/", function (req, res) {
     res.render("index");
 });
+const groupRoutes = require('./routes/group');
+app.use('/api/groups', groupRoutes);
 const authRoutes = require('./routes/auth');
 app.use('/api/auth', authRoutes);
 app.get('/api/ping', (req, res) => {
