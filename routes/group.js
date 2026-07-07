@@ -9,21 +9,18 @@ router.post('/', async (req, res) => {
     if (!name) {
       return res.status(400).json({ message: 'Group name is required' });
     }
-
     const group = new Group({
       name,
       owner: req.user.userId,
       members: [req.user.userId], 
     });
     await group.save();
-
     res.status(201).json(group);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error creating group' });
   }
 });
-
 router.post('/join', async (req, res) => {
   try {
     const { inviteCode } = req.body;
@@ -35,11 +32,11 @@ router.post('/join', async (req, res) => {
     if (!group) {
       return res.status(404).json({ message: 'Invalid invite code' });
     }
-    if (!group.members.includes(req.user.userId)) {
-      group.members.push(req.user.userId);
-      await group.save();
-    }
-
+    const alreadyMember=group.members.some((m) => m.toString() === req.user.userId);
+    if (!alreadyMember){
+    group.members.push(req.user.userId);
+   await group.save();
+   }
     res.json(group);
   } catch (err) {
     console.error(err);
