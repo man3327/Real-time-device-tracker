@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import markerImage from '../assets/hero.jpg';
 import { io } from 'socket.io-client';
-const TEMP_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YTRhOTYyYjlmZGUwNjdlYTMxZjE0MDYiLCJ1c2VybmFtZSI6Im1hbnZlbmRyYTIiLCJpYXQiOjE3ODMyNzMwMjIsImV4cCI6MTc4Mzg3NzgyMn0.jVUN9pdma-_uMLVQIW68DuDJFY4EYs063dns0zncDpk";
+import { useAuth } from '../context/AuthContext';
 const GROUP_ID = "6a4a94509fde067ea31f1405";
 const deviceIcon = new L.Icon({
   iconUrl: markerImage,
@@ -14,9 +14,10 @@ const deviceIcon = new L.Icon({
 });
 
 function MapView() {
+  const {token} = useAuth();
   const socketRef = useRef(null);
   const socketReadyRef = useRef(false);
-  const [devices, setDevices] = useState({}); // { socketId: { lat, lng, name } }
+  const [devices, setDevices] = useState({});
   const [currentPosition, setCurrentPosition] = useState(null);
   useEffect(() => {
     async function setupConnection() {
@@ -24,9 +25,9 @@ function MapView() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${TEMP_TOKEN}`,
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ groupId: GROUP_ID }),
+        body: JSON.stringify({groupId: GROUP_ID}),
       });
       if (!res.ok) {
         console.error('Failed to ensure device:', await res.text());
@@ -37,20 +38,16 @@ function MapView() {
       socketRef.current = io('http://localhost:3000', {
         query: { groupId: GROUP_ID, deviceId: device._id },
       });
-
       socketRef.current.on('connect', () => {
         socketReadyRef.current = true;
         console.log('Socket connected:', socketRef.current.id);
       });
-
       socketRef.current.on('disconnect', () => {
         socketReadyRef.current = false;
       });
-
       socketRef.current.on('connect_error', (error) => {
         console.error('Socket connection error:', error);
       });
-
       socketRef.current.on('user-disconnected', (id) => {
         setDevices((prev) => {
           const updated = { ...prev };
@@ -58,7 +55,6 @@ function MapView() {
           return updated;
         });
       });
-
       socketRef.current.on('receive-location', (data) => {
         if (data?.latitude == null || data?.longitude == null) return;
         setDevices((prev) => ({
@@ -71,9 +67,9 @@ function MapView() {
         }));
       });
     }
-
-    setupConnection();
-
+    if(token) {
+      setupConnection();
+    }
     let watcherId;
     if (navigator.geolocation) {
       watcherId = navigator.geolocation.watchPosition(
@@ -93,11 +89,8 @@ function MapView() {
       socketRef.current?.disconnect();
       if (watcherId) navigator.geolocation.clearWatch(watcherId);
     };
-  }, []);
-
-
+  }, [token]);
   const mapCenter = currentPosition ? [currentPosition.lat, currentPosition.lng] : [28.6139, 77.2090];
-
   return (
     <MapContainer center={mapCenter} zoom={13} style={{ height: '100vh', width: '100%' }}>
       <TileLayer

@@ -1,7 +1,6 @@
 const User = require('./models/User');
 const Device = require('./models/Device');
 const LocationPing = require('./models/LocationPing');
-
 require('dotenv').config();
 const mongoose = require('mongoose');
 mongoose.connect(process.env.MONGODB_URI)

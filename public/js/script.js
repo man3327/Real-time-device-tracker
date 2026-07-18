@@ -1,12 +1,11 @@
 const socket = io();
-
-if (navigator.geolocation) {
+if (navigator.geolocation){
     navigator.geolocation.watchPosition(
-        (position) => {
+        (position)=>{
             const { latitude, longitude } = position.coords;
             socket.emit('send-location', { latitude, longitude });
         },
-        (error) => {
+        (error) =>{
             console.log(error);
         },
         {
@@ -16,14 +15,11 @@ if (navigator.geolocation) {
         }
     );
 }
-
 const map = L.map('map').setView([0, 0], 10);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: 'OpenStreetMap',
 }).addTo(map);
-
 const markers = {};
-
 socket.on('receive-location', (data) => {
     const { id, latitude, longitude } = data;
     map.setView([latitude, longitude], 16);
