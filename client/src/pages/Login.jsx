@@ -22,7 +22,7 @@ function Login(){
                 return;
             }
             login(data.token,data.user);
-            navigate('/map');
+            navigate('/groups');
         }catch(err){
             setError('Could not reach server');
         }

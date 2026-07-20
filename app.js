@@ -30,10 +30,14 @@ io.on("connection", function (socket) {
         socket.join(groupId);
         console.log(`Socket ${socket.id} joined group ${groupId}`);
     }
-
     socket.on('send-location', async (data) => {
         if (groupId) {
-            socket.to(groupId).emit('receive-location', { id: socket.id, ...data });
+            socket.to(groupId).emit('receive-location', {
+                id: deviceId,
+                latitude: data?.latitude,
+                longitude: data?.longitude,
+                name: data?.name,
+            });
         }
         if (deviceId) {
             try {
@@ -42,7 +46,6 @@ io.on("connection", function (socket) {
                     lat: data.latitude,
                     lng: data.longitude,
                 });
-
                 await Device.findByIdAndUpdate(deviceId, {
                     lastLocation: {
                         lat: data.latitude,
@@ -55,13 +58,11 @@ io.on("connection", function (socket) {
             }
         }
     });
-
     socket.on("disconnect", function() {
-        if (groupId) {
-            socket.to(groupId).emit("user-disconnected", socket.id);
+        if (groupId && deviceId) {
+            socket.to(groupId).emit("user-disconnected", deviceId);
         }
     });
-    
 });
 app.get("/", function (req, res) {
     res.render("index");

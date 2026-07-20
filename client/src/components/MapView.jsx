@@ -4,7 +4,8 @@ import L from 'leaflet';
 import markerImage from '../assets/hero.jpg';
 import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
-const GROUP_ID = "6a4a94509fde067ea31f1405";
+import { useGroups } from '../context/GroupContext';
+import { useNavigate } from 'react-router-dom';
 const deviceIcon = new L.Icon({
   iconUrl: markerImage,
   iconSize: [32, 32],
@@ -12,14 +13,19 @@ const deviceIcon = new L.Icon({
   popupAnchor: [0, -32],
   className: 'device-marker-icon',
 });
-
 function MapView() {
   const {token} = useAuth();
+  const {activeGroupId} = useGroups();
+  const navigate = useNavigate();
   const socketRef = useRef(null);
   const socketReadyRef = useRef(false);
   const [devices, setDevices] = useState({});
   const [currentPosition, setCurrentPosition] = useState(null);
   useEffect(() => {
+    if (!activeGroupId) {
+      navigate('/groups');
+      return;
+    }
     async function setupConnection() {
       const res = await fetch('/api/devices/ensure', {
         method: 'POST',
@@ -27,7 +33,7 @@ function MapView() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({groupId: GROUP_ID}),
+        body: JSON.stringify({ groupId: activeGroupId }),
       });
       if (!res.ok) {
         console.error('Failed to ensure device:', await res.text());
@@ -35,8 +41,31 @@ function MapView() {
       }
       const device = await res.json();
       console.log('Using device:', device._id);
+      try {
+        const groupDevicesRes = await fetch(`/api/devices/group/${activeGroupId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (groupDevicesRes.ok) {
+          const groupDevices = await groupDevicesRes.json();
+          const initialDevices = {};
+          groupDevices.forEach((d) => {
+            if (d._id === device._id) return; // skip ourselves
+            if (d.lastLocation?.lat != null && d.lastLocation?.lng != null) {
+              initialDevices[d._id] = {
+                lat: d.lastLocation.lat,
+                lng: d.lastLocation.lng,
+                name: d.name,
+              };
+            }
+          });
+          setDevices(initialDevices);
+        }
+      } catch (err) {
+        console.error('Failed to fetch group devices:', err);
+      }
+
       socketRef.current = io('http://localhost:3000', {
-        query: { groupId: GROUP_ID, deviceId: device._id },
+        query: { groupId: activeGroupId, deviceId: device._id },
       });
       socketRef.current.on('connect', () => {
         socketReadyRef.current = true;
@@ -67,9 +96,11 @@ function MapView() {
         }));
       });
     }
-    if(token) {
+
+    if (token) {
       setupConnection();
     }
+
     let watcherId;
     if (navigator.geolocation) {
       watcherId = navigator.geolocation.watchPosition(
@@ -89,15 +120,17 @@ function MapView() {
       socketRef.current?.disconnect();
       if (watcherId) navigator.geolocation.clearWatch(watcherId);
     };
-  }, [token]);
+  }, [token, activeGroupId]);
+
   const mapCenter = currentPosition ? [currentPosition.lat, currentPosition.lng] : [28.6139, 77.2090];
+
   return (
     <MapContainer center={mapCenter} zoom={13} style={{ height: '100vh', width: '100%' }}>
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution="&copy; OpenStreetMap contributors"
       />
-      {currentPosition && (
+      {currentPosition&&(
         <Marker position={[currentPosition.lat, currentPosition.lng]}>
           <Popup>Your location</Popup>
         </Marker>

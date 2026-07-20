@@ -26,4 +26,20 @@ router.post('/ensure' , async (req,res) => {
     res.status(500).json({error : error.message});
   }
 });
+router.get('/group/:groupId', async (req, res) => {
+  try {
+    const { groupId } = req.params;
+
+    const group = await Group.findById(groupId);
+    if (!group || !group.members.some((m) => m.toString() === req.user.userId)) {
+      return res.status(403).json({ message: 'Not a member of this group' });
+    }
+
+    const devices = await Device.find({ group: groupId });
+    res.json(devices);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error fetching group devices' });
+  }
+});
 module.exports = router;
