@@ -27,7 +27,6 @@ router.post('/join', async (req, res) => {
     if (!inviteCode) {
       return res.status(400).json({ message: 'Invite code is required' });
     }
-
     const group = await Group.findOne({ inviteCode });
     if (!group) {
       return res.status(404).json({ message: 'Invalid invite code' });
@@ -45,7 +44,8 @@ router.post('/join', async (req, res) => {
 });
 router.get('/mine', async (req, res) => {
   try {
-    const groups = await Group.find({ members: req.user.userId });
+    const groups = await Group.find({ members: req.user.userId })
+      .populate('members', 'username email');
     res.json(groups);
   } catch (err) {
     console.error(err);

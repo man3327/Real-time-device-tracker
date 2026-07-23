@@ -6,6 +6,8 @@ import { io } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import { useGroups } from '../context/GroupContext';
 import { useNavigate } from 'react-router-dom';
+import MemberList from './MemberList';
+import { useGroups } from '../context/GroupContext';
 const deviceIcon = new L.Icon({
   iconUrl: markerImage,
   iconSize: [32, 32],
@@ -15,12 +17,14 @@ const deviceIcon = new L.Icon({
 });
 function MapView() {
   const {token} = useAuth();
+  const {groups,activeGroupId} = useGroups();
   const {activeGroupId} = useGroups();
   const navigate = useNavigate();
   const socketRef = useRef(null);
   const socketReadyRef = useRef(false);
   const [devices, setDevices] = useState({});
   const [currentPosition, setCurrentPosition] = useState(null);
+  const activeGroup = groups.find((g)=>g._id === activeGroupId);
   useEffect(() => {
     if (!activeGroupId) {
       navigate('/groups');
