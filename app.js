@@ -18,6 +18,8 @@ const io = socketio(server, {
         methods: ["GET", "POST"],
         credentials: true,
     },
+    pingInterval: 10000,
+    pingTimeout: 5000,
 });
 app.set("view engine", "ejs");
 app.use(express.json());
